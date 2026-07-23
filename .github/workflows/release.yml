@@ -7,24 +7,15 @@ on:
 
 jobs:
   release:
-    name: Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Setup python version
-        uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-      - name: Install dependecies
-        run: uv sync --locked
-      - name: Semantic Release
-        uses: cycjimmy/semantic-release-action@v6
-        with:
-          extra_plugins: |
-            @semantic-release/exec
-            @semantic-release/git
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    name: Semantic Release
+    # Shared org workflow: checks out this repo, runs semantic-release with the
+    # SEMANTIC_RELEASE_GH_TOKEN, whose identity is on main's branch-protection
+    # bypass list — so the @semantic-release/git push to the protected main
+    # branch is accepted (the default GITHUB_TOKEN is not allowed to bypass).
+    uses: Innoactive/Portal-Backend/.github/workflows/semantic-release.yml@develop
+    secrets:
+      gh_token: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
+    with:
+      extra-semantic-release-plugins: |
+        @semantic-release/exec
+        @semantic-release/git
