@@ -8,14 +8,25 @@ on:
 jobs:
   release:
     name: Semantic Release
-    # Shared org workflow: checks out this repo, runs semantic-release with the
-    # SEMANTIC_RELEASE_GH_TOKEN, whose identity is on main's branch-protection
-    # bypass list — so the @semantic-release/git push to the protected main
-    # branch is accepted (the default GITHUB_TOKEN is not allowed to bypass).
-    uses: Innoactive/Portal-Backend/.github/workflows/semantic-release.yml@develop
-    secrets:
-      gh_token: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
-    with:
-      extra-semantic-release-plugins: |
-        @semantic-release/exec
-        @semantic-release/git
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Full history + tags so semantic-release can determine the next version.
+          fetch-depth: 0
+          # Must be false: otherwise checkout stores the default GITHUB_TOKEN as a git
+          # auth header and the release push would use it (github-actions[bot], which is
+          # NOT on main's bypass list → GH006). With no persisted credentials, the push
+          # uses the SEMANTIC_RELEASE_GH_TOKEN below instead.
+          persist-credentials: false
+      - name: Semantic Release
+        uses: cycjimmy/semantic-release-action@v6
+        with:
+          extra_plugins: |
+            @semantic-release/exec
+            @semantic-release/git
+        env:
+          # Repo-scoped token whose identity bypasses PR protection on main, so the
+          # @semantic-release/git version-bump commit can be pushed to the protected branch.
+          GITHUB_TOKEN: ${{ secrets.SEMANTIC_RELEASE_GH_TOKEN }}
