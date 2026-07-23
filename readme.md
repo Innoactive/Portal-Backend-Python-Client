@@ -155,8 +155,11 @@ cd Portal-Python-CLI
 uv sync --locked
 ```
 
-To run the client, you can use the `uv run` command:
+To run the client, you can use the `uv run` command, either via the installed
+`innoactive-portal` console script or the module directly:
 
 ```sh
+uv run innoactive-portal --help
+# equivalently:
 uv run python -m portal_client --help
 ```

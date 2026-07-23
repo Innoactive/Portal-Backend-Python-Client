@@ -13,6 +13,11 @@ dependencies = ["requests", "backoff", "tqdm"]
 [project.scripts]
 innoactive-portal = "portal_client.__main__:main"
 
+[tool.setuptools]
+# Pin the package explicitly so the build does not rely on flat-layout auto-discovery,
+# which fails when other top-level directories (tests, specs, ...) are present.
+packages = ["portal_client"]
+
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
@@ -21,7 +26,9 @@ build-backend = "setuptools.build_meta"
 dev = ["requests-mock", "pytest", "ruff>=0.11.8"]
 
 [tool.uv]
-package = false
+# Build and install the project into the environment so the `innoactive-portal`
+# console script is available via `uv run` (matches what pip-installed users get).
+package = true
 
 [[tool.uv.index]]
 name = "pypi"
