@@ -1,6 +1,8 @@
 from base64 import b64encode
 from os import getenv
 
+from .auth import get_stored_access_token
+
 
 def get_authorization_header():
     try:
@@ -24,14 +26,17 @@ def get_authorization_header():
         )
 
     raise Exception(
-        "Missing authentication! Please specify either PORTAL_BACKEND_ACCESS_TOKEN or PORTAL_BACKEND_USERNAME and PORTAL_BACKEND_PASSWORD"
+        "Missing authentication! Please run `innoactive-portal auth login`, or specify either PORTAL_BACKEND_ACCESS_TOKEN or PORTAL_BACKEND_USERNAME and PORTAL_BACKEND_PASSWORD"
     )
 
 
 def get_bearer_authorization_header():
-    if getenv("PORTAL_BACKEND_ACCESS_TOKEN"):
-        return "Bearer %s" % getenv("PORTAL_BACKEND_ACCESS_TOKEN")
+    # An explicit env var always wins; otherwise fall back to a token stored via
+    # `innoactive-portal auth login`.
+    access_token = getenv("PORTAL_BACKEND_ACCESS_TOKEN") or get_stored_access_token()
+    if access_token:
+        return "Bearer %s" % access_token
 
     raise Exception(
-        "Missing authentication! Please specify either PORTAL_BACKEND_ACCESS_TOKEN or PORTAL_BACKEND_USERNAME and PORTAL_BACKEND_PASSWORD"
+        "Missing authentication! Please run `innoactive-portal auth login`, or specify either PORTAL_BACKEND_ACCESS_TOKEN or PORTAL_BACKEND_USERNAME and PORTAL_BACKEND_PASSWORD"
     )

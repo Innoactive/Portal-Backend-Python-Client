@@ -5,6 +5,7 @@ from .application_build_uploader import (
 )
 from .applications_v1 import configure_applications_v1_parser
 from .applications_v2 import configure_applications_v2_parser
+from .auth import configure_auth_parser
 from .branding import configure_branding_parser
 from .client_application_uploader import (
     configure_parser as configure_client_application_parser,
@@ -17,6 +18,11 @@ from .users import configure_users_parser
 ## create the top-level parser
 parser = argparse.ArgumentParser(prog="innoactive-portal")
 subparsers = parser.add_subparsers(help="Help on specific commands")
+
+auth_parser = subparsers.add_parser(
+    "auth", help="Authenticate against Portal (interactive browser login)"
+)
+configure_auth_parser(auth_parser)
 
 applications_parser = subparsers.add_parser(
     "applications", help="Manage application builds (versions) on Portal"
