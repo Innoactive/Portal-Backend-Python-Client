@@ -14,11 +14,12 @@ pip install portal-client@git+https://github.com/Innoactive/Portal-Python-CLI.gi
 
 ```bash
 $ innoactive-portal --help
-usage: innoactive-portal [-h] {applications,upload-app,upload-client,users,groups,branding,organizations,vm} ...
+usage: innoactive-portal [-h] {auth,applications,upload-app,upload-client,users,groups,branding,organizations,vms} ...
 
 positional arguments:
-  {applications,upload-app,upload-client,users,groups,branding,organizations,vm}
+  {auth,applications,upload-app,upload-client,users,groups,branding,organizations,vms}
                         Help on specific commands
+    auth                Authenticate against Portal (interactive browser login)
     applications        Manage application versions on Portal
     upload-app          Upload of applications / application versions to Portal
     upload-client       Upload of client applications to Portal
@@ -26,7 +27,7 @@ positional arguments:
     groups              Manage user groups on Portal
     branding            Manage branding on Portal
     organizations       Manage organizations on Portal
-    vm                  Manage Virtual Machines
+    vms                 Manage Virtual Machines
 
 options:
   -h, --help            show this help message and exit
@@ -34,7 +35,66 @@ options:
 
 ## Authentication
 
-To authenticate against Portal Backend, you need to provide credentials as environment variables. You can use either a Bearer token issued by Portal or a user's username (email address) and password combination.
+The easiest way to authenticate is to log in interactively via the browser. Given the
+credentials of an OAuth client registered on Portal, the CLI runs the OAuth2
+authorization code flow: it opens your browser to sign in and stores the resulting
+access token locally, so subsequent commands work without any further setup.
+
+```sh
+innoactive-portal auth login --client-id <your-oauth-client-id>
+```
+
+For a confidential client, also pass its secret:
+
+```sh
+innoactive-portal auth login --client-id <your-oauth-client-id> --client-secret <your-oauth-client-secret>
+```
+
+The redirect URI defaults to `http://localhost:8723/callback` and must be registered as
+one of the client's redirect URIs on Portal. Override it with `--redirect-uri` if your
+client uses a different one. You can also request specific scopes with `--scope` and
+suppress opening the browser (printing the URL instead) with `--no-browser`.
+
+Rather than passing them on the command line every time, you can configure the OAuth
+client via environment variables or a config file. For each setting the precedence is:
+CLI flag, then environment variable, then config file, then the built-in default.
+
+Supported environment variables:
+
+```sh
+export PORTAL_BACKEND_CLIENT_ID=your-oauth-client-id
+export PORTAL_BACKEND_CLIENT_SECRET=your-oauth-client-secret   # confidential clients only
+export PORTAL_BACKEND_REDIRECT_URI=http://localhost:8723/callback
+export PORTAL_BACKEND_OAUTH_SCOPE="read write"
+```
+
+Or a config file at `~/.config/innoactive-portal/config.json` (honoring
+`XDG_CONFIG_HOME`):
+
+```json
+{
+  "client_id": "your-oauth-client-id",
+  "client_secret": "your-oauth-client-secret",
+  "redirect_uri": "http://localhost:8723/callback",
+  "scope": "read write"
+}
+```
+
+With either configured, logging in is simply:
+
+```sh
+innoactive-portal auth login
+```
+
+The obtained token is stored in `~/.config/innoactive-portal/credentials.json` (honoring
+`XDG_CONFIG_HOME`). To check your current status or log out again, use:
+
+```sh
+innoactive-portal auth status
+innoactive-portal auth logout
+```
+
+Alternatively, you can provide credentials as environment variables. You can use either a Bearer token issued by Portal or a user's username (email address) and password combination. These always take precedence over a token stored via `auth login`.
 
 To use a bearer token, set:
 
@@ -103,8 +163,11 @@ cd Portal-Python-CLI
 uv sync --locked
 ```
 
-To run the client, you can use the `uv run` command:
+To run the client, you can use the `uv run` command, either via the installed
+`innoactive-portal` console script or the module directly:
 
 ```sh
+uv run innoactive-portal --help
+# equivalently:
 uv run python -m portal_client --help
 ```
