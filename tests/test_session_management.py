@@ -10,6 +10,7 @@ from portal_client.session_management import (
     SessionManagementApiClient,
     extend_vm_expiration_cli,
     list_vms_cli,
+    refresh_regions_cli,
 )
 
 
@@ -90,6 +91,41 @@ class TestSessionManagementApiClient:
 
         assert result == expected_response
 
+    def test_refresh_regions_success(self, requests_mock):
+        # The endpoint returns 200 OK with no content body
+        requests_mock.post(
+            "https://session-management.innoactive.io/Regions/refresh",
+            status_code=200,
+        )
+
+        client = SessionManagementApiClient()
+        with patch(
+            "portal_client.session_management.get_bearer_authorization_header",
+            return_value="Bearer test-token",
+        ):
+            result = client.refresh_regions()
+
+        assert result is None
+        assert requests_mock.last_request.method == "POST"
+        assert (
+            requests_mock.last_request.headers["Authorization"] == "Bearer test-token"
+        )
+
+    def test_refresh_regions_error_response(self, requests_mock):
+        requests_mock.post(
+            "https://session-management.innoactive.io/Regions/refresh",
+            text="Forbidden",
+            status_code=403,
+        )
+
+        client = SessionManagementApiClient()
+        with patch(
+            "portal_client.session_management.get_bearer_authorization_header",
+            return_value="Bearer test-token",
+        ):
+            with pytest.raises(requests.HTTPError):
+                client.refresh_regions()
+
     def test_list_vms_error_response(self, requests_mock):
         # Mock an error response
         error_response = {"error": "Unauthorized"}
@@ -162,3 +198,26 @@ class TestSessionManagementCLI:
         # Verify output
         output = mock_stdout.getvalue().strip()
         assert json.loads(output) == expected_response
+
+    def test_refresh_regions_cli(self, requests_mock):
+        # The endpoint returns 200 OK with no content body
+        requests_mock.post(
+            "https://session-management.innoactive.io/Regions/refresh",
+            status_code=200,
+        )
+
+        class MockArgs:
+            pass
+
+        args = MockArgs()
+
+        with patch(
+            "portal_client.session_management.get_bearer_authorization_header",
+            return_value="Bearer test-token",
+        ):
+            with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
+                refresh_regions_cli(args)
+
+        output = mock_stdout.getvalue().strip()
+        assert "Successfully triggered a refresh" in output
+        assert requests_mock.last_request.method == "POST"

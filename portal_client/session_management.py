@@ -66,6 +66,26 @@ class SessionManagementApiClient:
 
         return response.json()
 
+    @backoff.on_exception(
+        backoff.expo, requests.exceptions.ConnectionError, max_time=60
+    )
+    def refresh_regions(self):
+        """
+        Force an immediate refresh of the cached cloud resources (subnets,
+        gateways, and VM images) across all regions, bypassing the configured
+        cache expiry. Use after publishing a new VM image so it is picked up
+        without waiting for the background refresh cycle. Admin only.
+        """
+        response = requests.post(
+            urljoin(self.base_url, "/Regions/refresh"),
+            headers={"Authorization": get_bearer_authorization_header()},
+            timeout=30,
+        )
+
+        if not response.ok:
+            print(response.text)
+        response.raise_for_status()
+
 
 def list_vms_cli(args):
     """CLI wrapper for listing VMs"""
@@ -81,6 +101,13 @@ def extend_vm_expiration_cli(args):
         vm_id=args.vm_id, organization_id=args.org_id, timespan=args.time
     )
     print(json.dumps(response))
+
+
+def refresh_regions_cli(args):
+    """CLI wrapper for refreshing cloud resources across all regions"""
+    client = SessionManagementApiClient()
+    client.refresh_regions()
+    print("Successfully triggered a refresh of cloud resources across all regions.")
 
 
 def configure_session_management_parser(parser: argparse.ArgumentParser):
@@ -112,20 +139,33 @@ def configure_session_management_parser(parser: argparse.ArgumentParser):
     return vm_parser
 
 
+def configure_regions_parser(parser: argparse.ArgumentParser):
+    """Configure the CLI parser for region management commands"""
+    regions_parser = parser.add_subparsers(
+        description="Manage regions via session management"
+    )
+
+    # regions refresh command
+    regions_refresh_parser = regions_parser.add_parser(
+        "refresh",
+        help="Force an immediate refresh of cached cloud resources across all regions",
+    )
+    regions_refresh_parser.set_defaults(func=refresh_regions_cli)
+
+    return regions_parser
+
+
 # Define CLI args for standalone usage
 def configure_parser(parser):
     return configure_session_management_parser(parser)
 
 
-def main(args):
-    """Main function for standalone usage"""
+if __name__ == "__main__":
+    # Execute when the module is not initialized from an import statement.
+    parser = argparse.ArgumentParser()
+    configure_parser(parser)
+    args = parser.parse_args()
     if hasattr(args, "func"):
         args.func(args)
     else:
         parser.print_help()
-
-
-if __name__ == "__main__":
-    # Execute when the module is not initialized from an import statement.
-    args = configure_parser(parser=argparse.ArgumentParser()).parse_args()
-    main(args)

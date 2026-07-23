@@ -85,6 +85,14 @@ innoactive-portal applications v2 upload-build \
 
 You can run `innoactive-portal applications v2 upload-build --help` to get more information on available parameters.
 
+### Refreshing region resources
+
+Forces an immediate refresh of the cached cloud resources (subnets, gateways, and VM images) across all regions in session management, bypassing the configured cache expiry. Useful after publishing a new VM image so it is picked up without waiting for the background refresh cycle. Requires admin access.
+
+```sh
+innoactive-portal regions refresh
+```
+
 ## Development
 
 To run the client locally, you can clone the repository and install the dependencies via uv:
